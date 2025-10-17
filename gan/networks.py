@@ -17,6 +17,7 @@ class UpSampleConv2D(torch.jit.ScriptModule):
             input_channels, n_filters, kernel_size=kernel_size, padding=padding
         )
         self.upscale_factor = upscale_factor
+        self.pixel_shuffle = nn.PixelShuffle(self.upscale_factor)
 
     @torch.jit.script_method
     def forward(self, x: Tensor):
@@ -27,8 +28,8 @@ class UpSampleConv2D(torch.jit.ScriptModule):
         # (batch, channel, height*upscale_factor, width*upscale_factor)
         # 3. Apply convolution and return output
         ##################################################################
-        x = x.repeat(1, self.upscale_factor**2, 1, 1)  # Shape (B, C*r^2, H, W)
-        x = nn.PixelShuffle(self.upscale_factor)(x)  # Shape (B, C, H*r, W*r)
+        x = x.repeat(1, int(self.upscale_factor**2), 1, 1)  # Shape (B, C*r^2, H, W)
+        x = self.pixel_shuffle(x)  # Shape (B, C, H*r, W*r)
         x = self.conv(x)
         return x
         ##################################################################
@@ -45,6 +46,7 @@ class DownSampleConv2D(torch.jit.ScriptModule):
             input_channels, n_filters, kernel_size=kernel_size, padding=padding
         )
         self.downscale_ratio = downscale_ratio
+        self.pixel_unshuffle = nn.PixelUnshuffle(self.downscale_ratio)
 
     @torch.jit.script_method
     def forward(self, x: Tensor):
@@ -58,8 +60,10 @@ class DownSampleConv2D(torch.jit.ScriptModule):
         # 3. Take the average across dimension 0, apply convolution,
         # and return the output
         ##################################################################
+        
         B, C, H, W = x.shape
-        x = nn.PixelUnshuffle(self.downscale_ratio)(x)  # Shape (B, C*r^2, H/r, W/r)
+
+        x = self.pixel_unshuffle(x)  # Shape (B, C*r^2, H/r, W/r)
         x = x.view(B, self.downscale_ratio**2, C, H//self.downscale_ratio, W//self.downscale_ratio)  # Shape (B, r^2, C, H/r, W/r)
         x = x.permute(1, 0, 2, 3, 4)  # Shape (r^2, B, C, H/r, W/r)
         x = torch.mean(x, dim=0)  # Shape (B, C, H/r, W/r)
@@ -99,7 +103,7 @@ class ResBlockUp(torch.jit.ScriptModule):
             nn.Conv2d(in_channels=input_channels, out_channels=n_filters, kernel_size=kernel_size, padding=1, bias=False),
             nn.BatchNorm2d(num_features=n_filters, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(),
-            UpSampleConv2D(input_channels=n_filters, kernel_size=kernel_size, n_filters=n_filters, padding=1)
+            UpSampleConv2D(input_channels=n_filters, kernel_size=kernel_size, n_filters=n_filters)
         )
 
         self.upsample_residual = UpSampleConv2D(input_channels=input_channels, kernel_size=kernel_size, n_filters=n_filters)
@@ -114,8 +118,7 @@ class ResBlockUp(torch.jit.ScriptModule):
         # connection. Make sure to upsample the residual before adding it
         # to the layer output.
         ##################################################################
-        x = self.layers(x)
-        return x + self.upsample_residual(x)
+        return self.layers(x) + self.upsample_residual(x)
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -146,7 +149,7 @@ class ResBlockDown(torch.jit.ScriptModule):
             nn.ReLU(),
             nn.Conv2d(in_channels=input_channels, out_channels=n_filters, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
-            DownSampleConv2D(input_channels=n_filters, kernel_size=3, n_filters=n_filters, padding=1),
+            DownSampleConv2D(input_channels=n_filters, kernel_size=3, n_filters=n_filters),
         )
 
         self.downsample_residual = DownSampleConv2D(input_channels=input_channels, kernel_size=1, n_filters=n_filters)
@@ -161,8 +164,7 @@ class ResBlockDown(torch.jit.ScriptModule):
         # connection. Make sure to downsample the residual before adding
         # it to the layer output.
         ##################################################################
-        x = self.layers(x)
-        return x + self.downsample_residual(x)
+        return self.layers(x) + self.downsample_residual(x)
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
