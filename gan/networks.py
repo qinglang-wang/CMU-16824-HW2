@@ -103,10 +103,10 @@ class ResBlockUp(torch.jit.ScriptModule):
             nn.Conv2d(in_channels=input_channels, out_channels=n_filters, kernel_size=kernel_size, padding=1, bias=False),
             nn.BatchNorm2d(num_features=n_filters, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(),
-            UpSampleConv2D(input_channels=n_filters, kernel_size=kernel_size, n_filters=n_filters)
+            UpSampleConv2D(input_channels=n_filters, kernel_size=kernel_size, n_filters=n_filters, padding=1)
         )
 
-        self.upsample_residual = UpSampleConv2D(input_channels=input_channels, kernel_size=kernel_size, n_filters=n_filters)
+        self.upsample_residual = UpSampleConv2D(input_channels=input_channels, kernel_size=1, n_filters=n_filters)
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -149,7 +149,7 @@ class ResBlockDown(torch.jit.ScriptModule):
             nn.ReLU(),
             nn.Conv2d(in_channels=input_channels, out_channels=n_filters, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
-            DownSampleConv2D(input_channels=n_filters, kernel_size=3, n_filters=n_filters),
+            DownSampleConv2D(input_channels=n_filters, kernel_size=3, n_filters=n_filters, padding=1),
         )
 
         self.downsample_residual = DownSampleConv2D(input_channels=input_channels, kernel_size=1, n_filters=n_filters)
