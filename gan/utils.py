@@ -45,8 +45,7 @@ def interpolate_latent_space(gen, path):
     samples = torch.cat((combinations, torch.zeros(100, 126)), dim=1)
 
     gen.eval()
-    with torch.no_grad():
-        generated = (gen.forward_given_samples(samples) + 1) / 2
+    generated = (gen.forward_given_samples(samples) + 1) / 2
     gen.train()
 
     save_image(generated, path, nrow=10)
