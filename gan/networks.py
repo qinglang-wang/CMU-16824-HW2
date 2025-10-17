@@ -64,7 +64,7 @@ class DownSampleConv2D(torch.jit.ScriptModule):
         B, C, H, W = x.shape
 
         x = self.pixel_unshuffle(x)  # Shape (B, C*r^2, H/r, W/r)
-        x = x.view(B, self.downscale_ratio**2, C, H//self.downscale_ratio, W//self.downscale_ratio)  # Shape (B, r^2, C, H/r, W/r)
+        x = x.view(B, int(self.downscale_ratio**2), C, H//self.downscale_ratio, W//self.downscale_ratio)  # Shape (B, r^2, C, H/r, W/r)
         x = x.permute(1, 0, 2, 3, 4)  # Shape (r^2, B, C, H/r, W/r)
         x = torch.mean(x, dim=0)  # Shape (B, C, H/r, W/r)
         x = self.conv(x)
