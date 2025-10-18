@@ -22,7 +22,7 @@ def get_dataloaders(batch_size = 256):
             transforms.ToTensor(),
             #transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]), download=True),
-        batch_size=batch_size, shuffle=True,
+        batch_size=batch_size, shuffle=True, persistent_workers=True, prefetch_factor=4,
         num_workers=4, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
@@ -37,7 +37,7 @@ def get_dataloaders(batch_size = 256):
 
 def preprocess_data(x):
     x = 2*x - 1
-    return x.to('cuda')
+    return x.to('cuda', non_blocking=True)
 
 def avg_dict(all_metrics):
     keys = all_metrics[0].keys()
