@@ -18,7 +18,8 @@ def ae_loss(model, x):
     ##################################################################
     # TODO 2.2: Fill in MSE loss between x and its reconstruction.
     ##################################################################
-    loss = None
+    reconstruction = model.decoder(model.encoder(x))
+    loss = F.mse_loss(reconstruction, x, reduction='sum') / x.shape[0]
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
@@ -38,9 +39,17 @@ def vae_loss(model, x, beta = 1):
     # closed form, you can find the formula here:
     # (https://stats.stackexchange.com/questions/318748/deriving-the-kl-divergence-loss-for-vaes).
     ##################################################################
-    total_loss = None
-    recon_loss = None
-    kl_loss = None
+    mu, log_std = model.encoder(x)
+    eps = torch.randn_like(log_std)
+    std = torch.exp(log_std)
+    z = mu + eps * std
+    reconstruction = model.decoder(z)
+    recon_loss = F.mse_loss(reconstruction, x, reduction='sum') / x.shape[0]
+
+    log_var = 2. * log_std
+    kl_loss = 0.5 * torch.sum(mu.pow(2) + torch.exp(log_var) - log_var - 1., dim=1).mean()
+
+    total_loss = recon_loss + beta * kl_loss
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
@@ -58,7 +67,7 @@ def linear_beta_scheduler(max_epochs=None, target_val = 1):
     # linearly from 0 at epoch 0 to target_val at epoch max_epochs.
     ##################################################################
     def _helper(epoch):
-        pass
+        return target_val * epoch / (max_epochs-1) if max_epochs>1 else target_val
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
