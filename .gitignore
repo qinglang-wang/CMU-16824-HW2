@@ -1,3 +1,7 @@
+answers/
+
+vae/data
+
 vae_solutions/data/
 gan/data_gan/
 gan/data_ls_gan/
