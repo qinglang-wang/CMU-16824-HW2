@@ -1,9 +1,9 @@
-
 import torch
 import torch.nn as nn
 from typing import Optional, Tuple
 from utils import unnormalize_to_zero_to_one
 import torch.nn.functional as F
+
 
 class FlowModel(nn.Module):
     def __init__(
@@ -33,20 +33,21 @@ class FlowModel(nn.Module):
         # First, prepare the time step t,
         # then pass x_t and the prepared t to the model.
         ##################################################################
-        pass
+        t_idx = self._prepare_t(t).to(x_t.device)
+        v = self.model(x_t, t_idx)
+        return v
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
-
-
-        
 
     @torch.no_grad()
     def ode_euler_step(self, x: torch.Tensor, t: torch.Tensor, dt: float) -> torch.Tensor:
         ##################################################################
         # TODO 4.1: Implement one Euler step of the ODE solver
         ##################################################################
-        pass
+        v = self.forward(x, t)
+        x = x + dt * v
+        return x
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -73,8 +74,8 @@ class FlowModel(nn.Module):
         ##################################################################
         # TODO 4.1: Implement time grid and time step size,
         ##################################################################
-        ts = None
-        dt = None
+        ts = self._time_grid(steps)
+        dt = (ts[1] - ts[0]).item() if steps > 1 else 1.0
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -108,8 +109,8 @@ class FlowModel(nn.Module):
         # TODO 4.1: Implement time grid and time step size,
         # similar to sample() function above.
         ##################################################################
-        ts = None
-        dt = None
+        ts = self._time_grid(steps)
+        dt = (ts[1] - ts[0]).item() if steps > 1 else 1.0
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
