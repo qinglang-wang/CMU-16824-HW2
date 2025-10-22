@@ -1,4 +1,3 @@
-
 import argparse
 import os
 import torch
@@ -17,8 +16,12 @@ def get_fid(gen, dataset_name, dataset_resolution, z_dimension, batch_size, num_
     # Hint: Refer to diffusion/inference.py
     # Note: The output must be in the range [0, 255]!
     ##################################################################
-    gen_fn = None
-
+    def gen_fn(z, gen=gen):
+        N = z.shape[0]
+        z = z.view(N, 3, 32, 32).to(next(gen.parameters()).device)
+        imgs = gen.sample_given_z(z, z.shape, solver="euler")
+        imgs = (imgs.clamp(0.0, 1.0) * 255).to(torch.uint8)
+        return imgs
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
