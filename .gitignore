@@ -1,4 +1,5 @@
 answers/
+*.pt
 
 vae/data
 
