@@ -44,9 +44,7 @@ def interpolate_latent_space(gen, path):
     combinations = torch.tensor([[i, j] for i in torch.linspace(-1, 1, 10) for j in torch.linspace(-1, 1, 10)])
     samples = torch.cat((combinations, torch.zeros(100, 126)), dim=1).to('cuda')
 
-    gen.eval()
     generated = (gen.forward_given_samples(samples) + 1) / 2
-    gen.train()
 
     save_image(generated, path, nrow=10)
     ##################################################################
